@@ -1,3 +1,5 @@
+# le stringhe in ogni lista di sudoku vengono trattate come liste quando navigate con gli indici
+# [riga][colonna], comodo invece di dover fare [5,3,0,...]
 sudoku1 = [
     "530070000",
     "600195000",
