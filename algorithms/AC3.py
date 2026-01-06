@@ -1,53 +1,61 @@
-# implementazione dell'algoritmo AC3
+from collections import deque
+
+# Implementazione dell'algoritmo AC3
+# NB: AC3 non controlla il vincolo globale Tuttediverse(riga/colonna) oppure Tuttediverse(blocco)
+# ma controlla solo i vincoli binari con le celle in vicini corrispondenti propagando l'inferenza,
+# quindi non è detto che risolva il sudoku! Per quello bisogna ricorrere a un algoritmo di ricerca locale o con backtracking
 
 def revise(domini, Xi, Xj):
     """
-    Rende l'arco (Xi, Xj) consistente.
-    Rimuove da dominio(Xi) i valori che non hanno supporto in Xj.
+    Applica l'inferenza a tutti gli effetti
+    Rende l'arco (Xi, Xj) consistente elimininando gli elementi dal dominio di Xi che non hanno consistenza d'arco in Xj vicino.
+    Rimuove da dominio(Xi) i valori che non hanno consistenza d'arco in Xj.
     """
     rimosso = False
 
-    for x in set(domini[Xi]):  # copia per evitare problemi
-        # esiste almeno un y in Xj tale che x != y?
+    for x in set(domini[Xi]):
+        # Dato x valore preso dal dominio di Xi e dato y valore preso dal dominio di Xj ovvero nodo vicino:
+        # esiste almeno un elemento y != x? Se sì la consistenza d'arco è preservata perchè 
+        # ogni elemento dei vicini dovrà essere scelto diverso da quello x qualora venisse assunto in Xi con la ricerca
         if not any(x != y for y in domini[Xj]):
-            domini[Xi].remove(x)
-            rimosso = True
+            domini[Xi].remove(x) # Rimuovo il valore che non preserva la consistenza
+            rimosso = True # Notifico di aver rimosso un elemento, così da revisionare gli archi degli altri nodi vicini
 
     return rimosso
 
 
 def ac3(domini, vicini):
     """
-    Algoritmo AC3.
     Restituisce:
     - successo (True/False)
     - numero di revisioni
     - numero di valori rimossi
     """
-    from collections import deque
-
-    coda = deque()
+    # All'inizio ci metto tutti gli archi di consistenza, ovvero pair di ((r,c) = cella corrente,(r,c) = cella vicina)
+    coda = deque() # coda
     for Xi in domini:
         for Xj in vicini[Xi]:
             coda.append((Xi, Xj))
 
     revisioni = 0
     rimozioni = 0
-
-    while coda:
+    max_coda = len(coda)
+    
+    while any(coda):
+        max_coda = max(max_coda, len(coda))
         Xi, Xj = coda.popleft()
         revisioni += 1
 
         dimensione_precedente = len(domini[Xi])
 
-        if revise(domini, Xi, Xj):
+        if revise(domini, Xi, Xj): # Se ritorna true, notifica di aver rimosso qualche elemento da dominio Xi
             rimozioni += dimensione_precedente - len(domini[Xi])
 
             if len(domini[Xi]) == 0:
-                return False, revisioni, rimozioni
+                return False, revisioni, rimozioni, max_coda # Unico caso di fallimento, un dominio è vuoto => insoddisfacibile!
 
             for Xk in vicini[Xi]:
-                if Xk != Xj:
-                    coda.append((Xk, Xi))
+                if Xk != Xj: # Altrimenti rieffettua il revise() su quello appena revisionato (Xi, Xj)!
+                    coda.append((Xk, Xi)) # Propagazione di revisione, solo quando il dominio di Xi è stato ridotto
 
-    return True, revisioni, rimozioni
+    return True, revisioni, rimozioni, max_coda
